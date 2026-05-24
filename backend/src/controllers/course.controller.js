@@ -1,6 +1,6 @@
 import { Course } from "../models/Course.js";
 import { httpError } from "../utils/httpError.js";
-import { generateCourseFromLLM } from "../utils/llmClient.js";
+import { generateCourseFromLLM, generateModuleLesson } from "../utils/llmClient.js";
 
 function categorizeScore(score) {
   if (score < 50) return "Weak";
@@ -118,6 +118,20 @@ export async function getMyCourse(req, res, next) {
     if (!course) return next(httpError(404, "No course found for this user"));
 
     res.json(course);
+  } catch (e) {
+    next(e);
+  }
+}
+
+export async function generateModuleContent(req, res, next) {
+  try {
+    const { title, concepts } = req.body || {};
+    if (!title || !Array.isArray(concepts)) {
+      return next(httpError(400, "Module title and concepts are required"));
+    }
+
+    const content = await generateModuleLesson(title, concepts);
+    res.json({ content });
   } catch (e) {
     next(e);
   }

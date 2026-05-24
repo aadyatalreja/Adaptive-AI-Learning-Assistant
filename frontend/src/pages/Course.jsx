@@ -1,10 +1,16 @@
 import { useEffect, useState } from "react";
 import { CourseAPI } from "../services/api";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Course() {
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  
+  // Module interaction state
+  const [selectedModule, setSelectedModule] = useState(null);
+  const [moduleContent, setModuleContent] = useState("");
+  const [generatingContent, setGeneratingContent] = useState(false);
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -26,6 +32,24 @@ export default function Course() {
 
     fetchCourse();
   }, []);
+
+  const handleModuleClick = async (module) => {
+    setSelectedModule(module);
+    setGeneratingContent(true);
+    setModuleContent("");
+    try {
+      const { data } = await CourseAPI.moduleContent({
+        title: module.title,
+        concepts: module.concepts
+      });
+      setModuleContent(data.content);
+    } catch (err) {
+      console.error("Failed to generate module content:", err);
+      setModuleContent("Unable to generate lesson content. Please try again.");
+    } finally {
+      setGeneratingContent(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -66,9 +90,13 @@ export default function Course() {
             <div className="grid gap-3">
               {Array.isArray(course.modules) &&
                 course.modules.map((module, idx) => (
-                  <div key={`${module.title}-${idx}`} className="card-muted p-4 space-y-2">
+                  <div 
+                    key={`${module.title}-${idx}`} 
+                    onClick={() => handleModuleClick(module)}
+                    className="card-muted p-4 space-y-2 cursor-pointer hover:border-primary-500/50 hover:bg-slate-800/40 transition-all group"
+                  >
                     <div className="flex items-center justify-between gap-3">
-                      <h3 className="text-sm font-semibold text-slate-100">{module.title}</h3>
+                      <h3 className="text-sm font-semibold text-slate-100 group-hover:text-primary-400 transition-colors">{module.title}</h3>
                       <span className="text-[11px] px-2 py-0.5 rounded-full border border-primary-500/40 bg-primary-500/10 text-primary-200">
                         {module.level}
                       </span>
@@ -127,6 +155,74 @@ export default function Course() {
           </div>
         )}
       </div>
+
+      <AnimatePresence>
+        {selectedModule && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-4xl max-h-[90vh] glass-panel flex flex-col overflow-hidden shadow-2xl border-slate-700/50"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-5 border-b border-slate-800/60 bg-slate-900/40">
+                <div className="space-y-1">
+                  <h2 className="text-lg font-bold text-slate-50">{selectedModule.title}</h2>
+                  <div className="flex gap-2">
+                    {selectedModule.concepts.map(c => (
+                      <span key={c} className="text-[10px] text-slate-400 bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-700/30">
+                        {c}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setSelectedModule(null)}
+                  className="p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-100 transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar bg-slate-900/20">
+                {generatingContent ? (
+                  <div className="flex flex-col items-center justify-center h-64 space-y-4">
+                    <div className="h-10 w-10 rounded-full border-4 border-primary-500/20 border-t-primary-500 animate-spin" />
+                    <p className="text-sm text-slate-400 animate-pulse">AI is crafting your detailed lesson...</p>
+                  </div>
+                ) : (
+                  <div className="prose prose-invert max-w-none">
+                    <div className="whitespace-pre-wrap text-slate-300 text-sm leading-relaxed space-y-6">
+                      {moduleContent.split('\n').map((line, i) => {
+                        if (line.startsWith('# ')) return <h1 key={i} className="text-2xl font-bold text-slate-50 mt-6 mb-4">{line.substring(2)}</h1>;
+                        if (line.startsWith('## ')) return <h2 key={i} className="text-xl font-semibold text-slate-100 mt-5 mb-3">{line.substring(3)}</h2>;
+                        if (line.startsWith('### ')) return <h3 key={i} className="text-lg font-medium text-slate-200 mt-4 mb-2">{line.substring(4)}</h3>;
+                        if (line.startsWith('- ') || line.startsWith('* ')) return <li key={i} className="ml-4 list-disc text-slate-300">{line.substring(2)}</li>;
+                        if (line.trim() === '') return <br key={i} />;
+                        return <p key={i} className="mb-4">{line}</p>;
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 border-t border-slate-800/60 bg-slate-900/40 flex justify-end">
+                <button 
+                  onClick={() => setSelectedModule(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm font-medium text-slate-200 transition-colors"
+                >
+                  Close Lesson
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,12 +1,28 @@
+import { useEffect, useState } from "react";
 import BadgeCard from "../components/BadgeCard";
 import XPBar from "../components/XPBar";
+import { AssessmentAPI } from "../services/api";
 
 export default function Gamification() {
+  const [assessmentCompleted, setAssessmentCompleted] = useState(false);
+
+  useEffect(() => {
+    const checkAssessment = async () => {
+      try {
+        const { data } = await AssessmentAPI.checkStatus();
+        setAssessmentCompleted(data.completed);
+      } catch (err) {
+        console.error("Failed to check assessment status:", err);
+      }
+    };
+    checkAssessment();
+  }, []);
+
   const badges = [
     {
       title: "First assessment completed",
       description: "Completed the initial diagnostic without skipping.",
-      earned: true
+      earned: assessmentCompleted
     },
     {
       title: "Concept streak",
@@ -35,35 +51,14 @@ export default function Gamification() {
           </div>
         </div>
         <XPBar />
-        <div className="grid gap-4 md:grid-cols-[minmax(0,1.4fr),minmax(0,1fr)]">
-          <div className="space-y-3">
-            <h2 className="text-sm font-semibold text-slate-100">
-              Achievements
-            </h2>
-            <div className="grid gap-3 md:grid-cols-2">
-              {badges.map((b) => (
-                <BadgeCard key={b.title} {...b} />
-              ))}
-            </div>
-          </div>
-          <div className="glass-panel p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-slate-100">
-              Leaderboard (sample)
-            </h3>
-            <ul className="space-y-2 text-xs text-slate-300">
-              <li className="flex justify-between">
-                <span>Anon-01</span>
-                <span className="text-slate-500">Level 6 · 2850 XP</span>
-              </li>
-              <li className="flex justify-between">
-                <span>Anon-02</span>
-                <span className="text-slate-500">Level 5 · 2400 XP</span>
-              </li>
-              <li className="flex justify-between">
-                <span>You</span>
-                <span className="text-slate-500">Level 2 · 650 XP</span>
-              </li>
-            </ul>
+        <div className="space-y-3">
+          <h2 className="text-sm font-semibold text-slate-100">
+            Achievements
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {badges.map((b) => (
+              <BadgeCard key={b.title} {...b} />
+            ))}
           </div>
         </div>
       </div>

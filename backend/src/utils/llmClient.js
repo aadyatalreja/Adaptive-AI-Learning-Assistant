@@ -44,8 +44,9 @@ Return ONLY strictly valid JSON in the following format, with no markdown code b
   `;
 
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ 
+    const client = new GoogleGenerativeAI(apiKey);
+    console.log("Gemini client initialized");
+    const model = client.getGenerativeModel({ 
       model: "gemini-flash-latest",
       generationConfig: { responseMimeType: "application/json" }
     });
@@ -53,6 +54,7 @@ Return ONLY strictly valid JSON in the following format, with no markdown code b
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const raw = response.text();
+    console.log(raw);
     
     const jsonStr = extractJsonPayload(raw);
     return JSON.parse(jsonStr);
@@ -67,14 +69,14 @@ export async function generateCourseFromLLM(prompt) {
   if (!apiKey) throw new Error("GEMINI_API_KEY is missing");
 
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+    const client = new GoogleGenerativeAI(apiKey);
+    console.log("Gemini client initialized");
+    const model = client.getGenerativeModel({ model: "gemini-flash-latest" });
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const raw = response.text();
-
-    console.log("Gemini raw response:", raw);
+    console.log(raw);
 
     const jsonStr = extractJsonPayload(raw);
     
@@ -113,8 +115,9 @@ Return ONLY strictly valid JSON in the following format:
   `;
 
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ 
+    const client = new GoogleGenerativeAI(apiKey);
+    console.log("Gemini client initialized");
+    const model = client.getGenerativeModel({ 
       model: "gemini-flash-latest",
       generationConfig: { responseMimeType: "application/json" }
     });
@@ -122,11 +125,50 @@ Return ONLY strictly valid JSON in the following format:
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const raw = response.text();
+    console.log(raw);
 
     const jsonStr = extractJsonPayload(raw);
     return JSON.parse(jsonStr);
   } catch (err) {
     console.error("Gemini API Error (Prerequisites):", err.message);
     return { prerequisites: concepts.map(c => ({ concept: c, recommended: ["Basic principles", "Foundational theory"] })) };
+  }
+}
+
+export async function generateModuleLesson(moduleTitle, concepts) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY is missing");
+
+  const prompt = `
+Generate a detailed learning lesson for the module: "${moduleTitle}".
+Focus on these key concepts: ${concepts.join(", ")}.
+
+The content should be professional, engaging, and structured for a learning platform.
+Include the following sections:
+1. Introduction: Overview of the module.
+2. Headings & Subheadings: Organize the content logically.
+3. Detailed Explanations: Deep dive into the key concepts.
+4. Real-world Examples: Practical scenarios where these concepts apply.
+5. Step-by-step Breakdowns: How to implement or understand complex parts.
+6. Code Snippets (if applicable): Provide clean, commented examples.
+7. Common Mistakes & Interview Tips: Helpful pointers for students.
+8. Summary: Recapping the main takeaways.
+
+Format the output in clean Markdown.
+  `;
+
+  try {
+    const client = new GoogleGenerativeAI(apiKey);
+    console.log("Gemini client initialized");
+    const model = client.getGenerativeModel({ model: "gemini-flash-latest" });
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const raw = response.text();
+    console.log(raw);
+    return raw;
+  } catch (err) {
+    console.error("Gemini API Error (Module Lesson):", err.message);
+    throw new Error("Failed to generate module lesson content");
   }
 }

@@ -29,6 +29,18 @@ export async function generate(req, res, next) {
   }
 }
 
+export async function checkStatus(req, res, next) {
+  try {
+    const userId = req.user?.id || req.user?._id;
+    if (!userId) return next(httpError(401, "Unauthorized"));
+
+    const assessment = await Assessment.findOne({ userId });
+    res.json({ completed: !!assessment });
+  } catch (e) {
+    next(e);
+  }
+}
+
 export async function submit(req, res, next) {
   try {
     const { sessionId, answers } = req.body || {};
