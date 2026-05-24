@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -11,6 +11,7 @@ import {
 } from "chart.js";
 import XPBar from "../components/XPBar";
 import { useProgress } from "../context/ProgressContext";
+import { CourseAPI } from "../services/api";
 
 ChartJS.register(
   CategoryScale,
@@ -23,6 +24,8 @@ ChartJS.register(
 
 export default function Dashboard() {
   const { setCompletedTopics } = useProgress();
+  const [reviews, setReviews] = useState([]);
+  const [loadingReviews, setLoadingReviews] = useState(true);
 
   useEffect(() => {
     setCompletedTopics([
@@ -30,6 +33,39 @@ export default function Dashboard() {
       "Asymptotic complexity basics",
       "Matrix multiplication and norms"
     ]);
+
+    const fetchCourseData = async () => {
+      try {
+        setLoadingReviews(true);
+        const { data } = await CourseAPI.myCourse();
+        if (data && Array.isArray(data.modules)) {
+          const mappedReviews = data.modules.slice(0, 5).map(module => {
+            let status = "Scheduled";
+            const level = (module.level || "").toLowerCase();
+            
+            if (level.includes("beginner")) {
+              status = "Today · High priority";
+            } else if (level.includes("intermediate")) {
+              status = "Tomorrow";
+            } else if (level.includes("advanced")) {
+              status = "In 3 days";
+            }
+
+            return {
+              topic: module.title,
+              status: status
+            };
+          });
+          setReviews(mappedReviews);
+        }
+      } catch (err) {
+        console.error("Failed to fetch course for reviews:", err);
+      } finally {
+        setLoadingReviews(false);
+      }
+    };
+
+    fetchCourseData();
   }, [setCompletedTopics]);
 
   const chartData = {
@@ -107,18 +143,27 @@ export default function Dashboard() {
               Spaced repetition sessions prioritized by forgetting curves.
             </p>
             <ul className="mt-2 space-y-2 text-xs text-slate-300">
-              <li className="flex justify-between">
-                <span>Bias-variance tradeoff</span>
-                <span className="text-slate-500">Today · High priority</span>
-              </li>
-              <li className="flex justify-between">
-                <span>Heap vs priority queue</span>
-                <span className="text-slate-500">Tomorrow</span>
-              </li>
-              <li className="flex justify-between">
-                <span>Singular value decomposition</span>
-                <span className="text-slate-500">In 3 days</span>
-              </li>
+              {loadingReviews ? (
+                <div className="space-y-2 animate-pulse">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="flex justify-between">
+                      <div className="h-3 w-2/3 bg-slate-800 rounded" />
+                      <div className="h-3 w-1/4 bg-slate-800 rounded" />
+                    </div>
+                  ))}
+                </div>
+              ) : reviews.length > 0 ? (
+                reviews.map((review, idx) => (
+                  <li key={idx} className="flex justify-between gap-3">
+                    <span className="truncate">{review.topic}</span>
+                    <span className="text-slate-500 flex-shrink-0">{review.status}</span>
+                  </li>
+                ))
+              ) : (
+                <li className="text-slate-500 italic">
+                  No upcoming reviews. Generate a course to get started.
+                </li>
+              )}
             </ul>
           </div>
         </div>

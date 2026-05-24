@@ -19,15 +19,15 @@ function extractJsonPayload(raw) {
 }
 
 export async function generateAssessmentQuestions(subject) {
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) throw new Error("GROQ_API_KEY is missing");
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY is missing");
 
   const prompt = `
 Generate 10 multiple-choice questions (MCQs) for the subject: "${subject}".
 Each question must include:
 - question: The question text.
 - options: An array of 4 strings.
-- answer: The correct option string.
+- answer: The correct option string (matching one of the options exactly).
 - concept: The specific concept name being tested.
 
 Return ONLY strictly valid JSON in the following format, with no markdown code blocks, no prose, and no explanation:
@@ -44,32 +44,20 @@ Return ONLY strictly valid JSON in the following format, with no markdown code b
   `;
 
   try {
-    const response = await axios.post(
-      "https://api.groq.com/openai/v1/chat/completions",
-      {
-        model: "llama-3.1-8b-instant",
-        messages: [
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        temperature: 0.1,
-        response_format: { type: "json_object" }
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json"
-        }
-      }
-    );
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-flash-latest",
+      generationConfig: { responseMimeType: "application/json" }
+    });
 
-    const raw = response.data.choices?.[0]?.message?.content || "";
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const raw = response.text();
+    
     const jsonStr = extractJsonPayload(raw);
     return JSON.parse(jsonStr);
   } catch (err) {
-    console.error("Groq API Error:", err.response?.data || err.message);
+    console.error("Gemini API Error (Assessment):", err.message);
     throw new Error("Failed to generate assessment questions");
   }
 }
@@ -100,5 +88,45 @@ export async function generateCourseFromLLM(prompt) {
   } catch (err) {
     console.error("Gemini API Error (Course):", err.message);
     throw new Error("Failed to generate course from Gemini");
+  }
+}
+
+export async function generatePrerequisites(concepts) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY is missing");
+
+  const prompt = `
+For each of the following concepts, provide 2-3 essential prerequisite topics that a student should review to improve their understanding.
+
+Concepts:
+${concepts.map((c) => `- ${c}`).join("\n")}
+
+Return ONLY strictly valid JSON in the following format:
+{
+  "prerequisites": [
+    {
+      "concept": "...",
+      "recommended": ["...", "...", "..."]
+    }
+  ]
+}
+  `;
+
+  try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-flash-latest",
+      generationConfig: { responseMimeType: "application/json" }
+    });
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const raw = response.text();
+
+    const jsonStr = extractJsonPayload(raw);
+    return JSON.parse(jsonStr);
+  } catch (err) {
+    console.error("Gemini API Error (Prerequisites):", err.message);
+    return { prerequisites: concepts.map(c => ({ concept: c, recommended: ["Basic principles", "Foundational theory"] })) };
   }
 }
