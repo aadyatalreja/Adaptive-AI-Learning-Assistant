@@ -13,26 +13,30 @@ import Dashboard from "./pages/Dashboard";
 import WeakAreas from "./pages/WeakAreas";
 import StudyMode from "./pages/StudyMode";
 import Gamification from "./pages/Gamification";
+import CourseDashboard from "./pages/CourseDashboard";
 
 function ProtectedRoute({ children }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
+  if (loading) return null; // Or a global spinner
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   return children;
 }
 
 function ShellLayout({ children }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) return null;
 
   if (!isAuthenticated) {
-    return <div className="min-h-screen bg-app">{children}</div>;
+    return <>{children}</>;
   }
 
   return (
-    <div className="min-h-screen bg-app flex">
+    <div className="page-shell flex min-h-screen">
       <Sidebar />
       <div className="flex-1 flex flex-col">
         <Navbar />
-        <main className="flex-1 px-4 pt-5 pb-8 md:px-8 md:pt-7">
+        <main className="flex-1 px-4 pt-4 pb-6 md:px-8 md:pt-6">
           {children}
         </main>
       </div>
@@ -134,6 +138,16 @@ export default function App() {
             <ProtectedRoute>
               <ShellLayout>
                 <Gamification />
+              </ShellLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/course"
+          element={
+            <ProtectedRoute>
+              <ShellLayout>
+                <CourseDashboard />
               </ShellLayout>
             </ProtectedRoute>
           }

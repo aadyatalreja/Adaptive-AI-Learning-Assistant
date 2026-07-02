@@ -8,6 +8,8 @@ import authRoutes from "./src/routes/auth.routes.js";
 import userRoutes from "./src/routes/user.routes.js";
 import assessmentRoutes from "./src/routes/assessment.routes.js";
 import analysisRoutes from "./src/routes/analysis.routes.js";
+import courseRoutes from "./src/routes/course.routes.js";
+import studyRoutes from "./src/routes/study.routes.js";
 
 dotenv.config();
 
@@ -22,6 +24,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/assessment", assessmentRoutes);
 app.use("/api/analysis", analysisRoutes);
+app.use("/api/course", courseRoutes);
+app.use("/api/study", studyRoutes);
 
 app.use((err, _req, res, _next) => {
   const status = err.status || 500;

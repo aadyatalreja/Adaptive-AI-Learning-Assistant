@@ -2,9 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
-import Button from "../components/ui/Button";
-import { GlassPanel, SurfaceCard } from "../components/ui/Card";
-import { useToast } from "../components/ui/Toast";
+import { UserAPI } from "../services/api";
 
 const roles = [
   {
@@ -27,60 +25,27 @@ const roles = [
   }
 ];
 
-function RoleIcon({ id }) {
-  const common = { className: "h-5 w-5", viewBox: "0 0 24 24", fill: "none" };
-  if (id === "teacher") {
-    return (
-      <svg {...common} stroke="currentColor">
-        <path strokeWidth="1.6" d="M12 3 2 8l10 5 10-5-10-5Z" />
-        <path strokeWidth="1.6" d="M6 10v6c0 2 3 4 6 4s6-2 6-4v-6" />
-      </svg>
-    );
-  }
-  if (id === "self-learner") {
-    return (
-      <svg {...common} stroke="currentColor">
-        <path strokeWidth="1.6" d="M12 3v18" />
-        <path strokeWidth="1.6" d="M7 7h10" />
-        <path strokeWidth="1.6" d="M7 17h10" />
-        <path strokeWidth="1.6" d="M9 10h6v4H9v-4Z" />
-      </svg>
-    );
-  }
-  return (
-    <svg {...common} stroke="currentColor">
-      <path strokeWidth="1.6" d="M8 6h8" />
-      <path strokeWidth="1.6" d="M7 10h10" />
-      <path strokeWidth="1.6" d="M6 14h12" />
-      <path strokeWidth="1.6" d="M8 18h8" />
-    </svg>
-  );
-}
-
 export default function RoleSelection() {
   const [selectedRole, setSelectedRole] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  const { setUser, user } = useAuth();
-  const toast = useToast();
+  const { setUser } = useAuth();
 
   const handleContinue = async () => {
     if (!selectedRole) return;
     try {
       setSaving(true);
       setError("");
-      // Demo mode: no backend call
-      if (user) {
-        const next = { ...user, role: selectedRole };
-        setUser(next);
-        localStorage.setItem("mockUser", JSON.stringify(next));
+      
+      const { data } = await UserAPI.selectRole({ role: selectedRole });
+      if (data.user) {
+        setUser(data.user);
       }
-      toast?.push?.({ type: "success", title: "Role saved" });
       navigate("/subjects");
     } catch (err) {
       setError(
-        err?.message || "Unable to save role. Please retry."
+        err?.response?.data?.message || err?.message || "Unable to save role. Please retry."
       );
     } finally {
       setSaving(false);
@@ -88,82 +53,62 @@ export default function RoleSelection() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-semibold text-slate-50 tracking-tight">
-            Choose your role<span className="text-gradient">.</span>
-          </h1>
-          <p className="mt-2 text-sm text-slate-400 max-w-2xl">
-            This helps personalize dashboards, assessments, and study workflows.
-          </p>
+    <div className="page-shell px-4 py-8 md:px-8">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl md:text-2xl font-semibold text-slate-50">
+              Select how you use the platform
+            </h1>
+            <p className="mt-1 text-sm text-slate-400">
+              We fine-tune recommendations and dashboards based on your role.
+            </p>
+          </div>
         </div>
-        <div className="hidden md:block">
-          <SurfaceCard className="px-4 py-3">
-            <p className="text-xs text-slate-500">Step</p>
-            <p className="text-sm text-slate-100 font-medium">1 of 3</p>
-          </SurfaceCard>
-        </div>
-      </div>
-
-      {error && (
-        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
-          {error}
-        </div>
-      )}
-
-      <div className="grid gap-4 md:grid-cols-3">
-        {roles.map((role) => {
-          const active = selectedRole === role.id;
-          return (
+        {error && (
+          <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-100">
+            {error}
+          </div>
+        )}
+        <div className="grid gap-4 md:grid-cols-3">
+          {roles.map((role) => (
             <motion.button
               key={role.id}
               type="button"
-              whileHover={{ y: -2 }}
+              whileHover={{ y: -3 }}
               onClick={() => setSelectedRole(role.id)}
-              className={[
-                "focus-ring text-left rounded-3xl border p-5 transition-all",
-                active
-                  ? "border-white/15 bg-gradient-to-br from-white/[0.07] to-white/[0.03] shadow-glow"
-                  : "border-white/10 bg-white/[0.04] hover:bg-white/[0.06]"
-              ].join(" ")}
+              className={`card-muted p-4 text-left transition-colors ${
+                selectedRole === role.id
+                  ? "border-primary-500 bg-slate-900"
+                  : ""
+              }`}
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-3">
-                  <div className="h-10 w-10 rounded-2xl bg-white/[0.06] border border-white/10 flex items-center justify-center text-slate-200">
-                    <RoleIcon id={role.id} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-100">
-                      {role.title}
-                    </p>
-                    <p className="text-xs text-slate-500 mt-1">
-                      {role.description}
-                    </p>
-                  </div>
-                </div>
-                <div
-                  className={[
-                    "h-2.5 w-2.5 rounded-full border mt-1",
-                    active
-                      ? "bg-accent-cyan border-accent-cyan/70"
-                      : "border-white/20 bg-white/[0.06]"
-                  ].join(" ")}
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-sm font-semibold text-slate-100">
+                  {role.title}
+                </h2>
+                <span
+                  className={`h-2.5 w-2.5 rounded-full border ${
+                    selectedRole === role.id
+                      ? "bg-primary-500 border-primary-300"
+                      : "border-slate-700 bg-slate-900"
+                  }`}
                 />
               </div>
+              <p className="text-xs text-slate-400">{role.description}</p>
             </motion.button>
-          );
-        })}
+          ))}
+        </div>
+        <div className="flex justify-end">
+          <button
+            onClick={handleContinue}
+            disabled={!selectedRole || saving}
+            className="px-4 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-sm font-medium text-white disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+          >
+            Continue
+          </button>
+        </div>
       </div>
-
-      <GlassPanel className="p-4 flex items-center justify-between gap-4">
-        <p className="text-sm text-slate-400">
-          You can change this later from settings.
-        </p>
-        <Button onClick={handleContinue} disabled={!selectedRole || saving}>
-          Continue
-        </Button>
-      </GlassPanel>
     </div>
   );
 }

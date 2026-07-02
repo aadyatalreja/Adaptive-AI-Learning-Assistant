@@ -4,6 +4,15 @@ export const api = axios.create({
   baseURL: "/api"
 });
 
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers = config.headers || {};
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -26,11 +35,30 @@ export const UserAPI = {
 };
 
 export const AssessmentAPI = {
-  getQuestions: () => api.get("/assessment/questions"),
+  generate: (subject) => api.get(`/assessment/generate?subject=${encodeURIComponent(subject)}`),
+  checkStatus: () => api.get("/assessment/status"),
   submit: (payload) => api.post("/assessment/submit", payload)
 };
 
 export const AnalysisAPI = {
   weakAreas: () => api.get("/analysis/weak-areas")
 };
+
+export const CourseAPI = {
+  generate: (payload) => api.post("/course/generate", payload),
+  myCourse: () => api.get("/course/my-course"),
+  moduleContent: (payload) => api.post("/course/module-content", payload)
+};
+
+export const StudyAPI = {
+  generate: (subject) => api.get(`/study/generate?subject=${encodeURIComponent(subject)}`)
+};
+
+export async function generateCourse(data) {
+  const token = localStorage.getItem("token");
+  const response = await api.post("/course/generate", data, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  });
+  return response.data;
+}
 

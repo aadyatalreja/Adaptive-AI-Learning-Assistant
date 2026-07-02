@@ -1,8 +1,5 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
-import Input from "./ui/Input";
-import Button from "./ui/Button";
-import { GlassPanel } from "./ui/Card";
 
 export default function AuthForm({
   mode,
@@ -17,7 +14,6 @@ export default function AuthForm({
     password: "",
     confirmPassword: ""
   });
-  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -28,150 +24,154 @@ export default function AuthForm({
     onSubmit(form);
   };
 
-  const emailValid = useMemo(() => /\S+@\S+\.\S+/.test(form.email), [form.email]);
+  const passwordStrong =
+    form.password.length >= 8 &&
+    /[A-Z]/.test(form.password) &&
+    /[0-9]/.test(form.password);
 
-  const passwordScore = useMemo(() => {
-    let score = 0;
-    if (form.password.length >= 8) score += 1;
-    if (/[A-Z]/.test(form.password)) score += 1;
-    if (/[0-9]/.test(form.password)) score += 1;
-    if (/[^A-Za-z0-9]/.test(form.password)) score += 1;
-    return score; // 0..4
-  }, [form.password]);
-
-  const strengthLabel = ["Too weak", "Weak", "Good", "Strong", "Very strong"][passwordScore];
-  const strengthWidth = [0, 30, 55, 80, 100][passwordScore];
+  const emailValid = /\S+@\S+\.\S+/.test(form.email);
 
   return (
-    <GlassPanel className="max-w-md w-full mx-auto p-6 md:p-8">
-      <motion.form
-        onSubmit={handleSubmit}
-        className="space-y-6"
-        initial={{ opacity: 0, y: 14 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
-      >
-        <div>
-          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-slate-50">
-            {mode === "login" ? (
-              <>
-                Welcome back<span className="text-gradient">.</span>
-              </>
-            ) : (
-              <>
-                Create your profile<span className="text-gradient">.</span>
-              </>
-            )}
-          </h1>
-          <p className="mt-2 text-sm text-slate-400">
-            {mode === "login"
-              ? "Sign in to continue your adaptive learning plan."
-              : "Set up your learning workspace and start with a baseline assessment."}
-          </p>
+    <motion.form
+      onSubmit={handleSubmit}
+      className="glass-panel max-w-md w-full mx-auto p-6 md:p-8 space-y-6"
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+    >
+      <div>
+        <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-slate-50">
+          {mode === "login" ? "Welcome back" : "Create your learning profile"}
+        </h1>
+        <p className="mt-1 text-sm text-slate-400">
+          {mode === "login"
+            ? "Access your adaptive learning dashboard."
+            : "Start with a short setup and initial assessment."}
+        </p>
+      </div>
+
+      {error && (
+        <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-100">
+          {error}
         </div>
+      )}
 
-        {error && (
-          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
-            {error}
-          </div>
-        )}
-
-        <div className="space-y-4">
-          {showName && (
-            <Input
-              label="Name"
+      <div className="space-y-4">
+        {showName && (
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-slate-300">
+              Name
+            </label>
+            <input
+              type="text"
               name="name"
+              className="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-50 outline-none focus:border-primary-500"
+              placeholder="How should we address you?"
               value={form.name}
               onChange={handleChange}
               required
             />
-          )}
-
-          <Input
-            label="Email"
-            name="email"
+          </div>
+        )}
+        <div className="space-y-1.5">
+          <label className="block text-xs font-medium text-slate-300">
+            Email
+          </label>
+          <input
             type="email"
+            name="email"
+            className="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-50 outline-none focus:border-primary-500"
+            placeholder="you@institution.edu"
             value={form.email}
             onChange={handleChange}
             required
-            hint={
-              form.email
-                ? emailValid
-                  ? "Valid email address"
-                  : "Please enter a valid email address"
-                : "Use an institutional or personal email"
-            }
           />
-
-          <Input
-            label="Password"
+          {form.email && (
+            <p
+              className={`text-[11px] ${
+                emailValid ? "text-emerald-400" : "text-amber-400"
+              }`}
+            >
+              {emailValid ? "Valid email address" : "Please enter a valid email"}
+            </p>
+          )}
+        </div>
+        <div className="space-y-1.5">
+          <label className="block text-xs font-medium text-slate-300">
+            Password
+          </label>
+          <input
+            type="password"
             name="password"
-            type={showPassword ? "text" : "password"}
+            className="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-50 outline-none focus:border-primary-500"
+            placeholder="Minimum 8 characters"
             value={form.password}
             onChange={handleChange}
             required
-            rightSlot={
-              <button
-                type="button"
-                className="focus-ring rounded-xl border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-slate-200 hover:bg-white/[0.07]"
-                onClick={() => setShowPassword((v) => !v)}
-              >
-                {showPassword ? "Hide" : "Show"}
-              </button>
-            }
           />
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs text-slate-500">
-              <span>Password strength</span>
-              <span className="text-slate-300">{strengthLabel}</span>
-            </div>
-            <div className="h-1.5 rounded-full bg-white/[0.06] border border-white/10 overflow-hidden">
+          <div className="flex items-center gap-2 text-[11px]">
+            <div className="flex-1 h-1.5 rounded-full bg-slate-800 overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-accent-indigo via-accent-violet to-accent-cyan transition-all"
-                style={{ width: `${strengthWidth}%` }}
+                className={`h-full transition-all ${
+                  !form.password
+                    ? "w-0"
+                    : passwordStrong
+                    ? "w-full bg-emerald-500"
+                    : "w-1/2 bg-amber-500"
+                }`}
               />
             </div>
+            <span
+              className={
+                passwordStrong ? "text-emerald-400" : "text-slate-400"
+              }
+            >
+              {passwordStrong ? "Strong" : "Weak"}
+            </span>
           </div>
-
-          {mode === "signup" && (
-            <Input
-              label="Confirm password"
+        </div>
+        {mode === "signup" && (
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-slate-300">
+              Confirm Password
+            </label>
+            <input
+              type="password"
               name="confirmPassword"
-              type={showPassword ? "text" : "password"}
+              className="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-50 outline-none focus:border-primary-500"
               value={form.confirmPassword}
               onChange={handleChange}
               required
-              hint={
-                form.confirmPassword
-                  ? form.password === form.confirmPassword
-                    ? "Passwords match"
-                    : "Passwords do not match"
-                  : undefined
-              }
-              error={
-                form.confirmPassword &&
-                form.password !== form.confirmPassword
-                  ? "Passwords do not match"
-                  : undefined
-              }
             />
-          )}
-        </div>
+            {form.confirmPassword && (
+              <p
+                className={`text-[11px] ${
+                  form.password === form.confirmPassword
+                    ? "text-emerald-400"
+                    : "text-amber-400"
+                }`}
+              >
+                {form.password === form.confirmPassword
+                  ? "Passwords match"
+                  : "Passwords do not match"}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
 
-        <Button
-          type="submit"
-          disabled={loading}
-          className="w-full justify-center"
-        >
-          {loading
-            ? "Processing..."
-            : mode === "login"
-            ? "Login"
-            : "Create account"}
-        </Button>
-      </motion.form>
-    </GlassPanel>
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full inline-flex items-center justify-center rounded-xl bg-primary-600 hover:bg-primary-700 text-sm font-medium text-white py-2.5 mt-2 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+      >
+        {loading
+          ? "Processing..."
+          : mode === "login"
+          ? "Login"
+          : "Create Account"}
+      </button>
+    </motion.form>
   );
 }
 

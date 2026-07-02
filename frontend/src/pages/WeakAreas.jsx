@@ -1,95 +1,98 @@
 import { useEffect, useState } from "react";
-import Button from "../components/ui/Button";
-import { GlassPanel, SurfaceCard } from "../components/ui/Card";
+import { AnalysisAPI } from "../services/api";
 
 export default function WeakAreas() {
   const [areas, setAreas] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const fetchAreas = async () => {
-      // Demo mode: local stub (no backend call)
-      setAreas([
-        {
-          concept: "Backpropagation",
-          weakness: "High",
-          recommended: ["Gradient Descent", "Partial Derivatives"]
-        },
-        {
-          concept: "Graph traversal",
-          weakness: "Medium",
-          recommended: ["Breadth-first search", "Depth-first search"]
-        }
-      ]);
+      try {
+        setLoading(true);
+        const { data } = await AnalysisAPI.weakAreas();
+        setAreas(data.areas || []);
+      } catch (err) {
+        console.error("Fetch error:", err);
+        setError("Failed to load weak area analysis.");
+      } finally {
+        setLoading(false);
+      }
     };
     fetchAreas();
   }, []);
 
-  const tone = (w) => {
-    if (w === "High") return "border-red-500/25 bg-red-500/10 text-red-200";
-    if (w === "Medium") return "border-amber-500/25 bg-amber-500/10 text-amber-200";
-    return "border-white/10 bg-white/[0.04] text-slate-200";
-  };
-
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-semibold text-slate-50 tracking-tight">
-            Weak areas<span className="text-gradient">.</span>
-          </h1>
-          <p className="mt-2 text-sm text-slate-400 max-w-2xl">
-            Concepts prioritized for remediation based on your baseline and practice history.
-          </p>
+    <div className="page-shell px-4 py-8 md:px-8">
+      <div className="max-w-5xl mx-auto space-y-6">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl md:text-2xl font-semibold text-slate-50">
+              Weak area analysis
+            </h1>
+            <p className="mt-1 text-sm text-slate-400 max-w-2xl">
+              Concepts prioritized for remediation based on recent assessment
+              and practice history.
+            </p>
+          </div>
         </div>
-        <SurfaceCard className="px-4 py-3 hidden md:block">
-          <p className="text-xs text-slate-500">Priority</p>
-          <p className="text-sm text-slate-100 font-medium">Actionable next steps</p>
-        </SurfaceCard>
-      </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {areas.map((area) => (
-          <GlassPanel key={area.concept} className="p-5 space-y-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-100 tracking-tight">
-                  {area.concept}
-                </h2>
-                <p className="text-sm text-slate-500 mt-1">
-                  Recommended prerequisites to close the gap.
-                </p>
+        {loading && (
+          <div className="grid gap-4 md:grid-cols-2">
+            {[1, 2].map((i) => (
+              <div key={i} className="glass-panel p-4 space-y-4 animate-pulse">
+                <div className="h-4 w-1/2 bg-slate-800 rounded" />
+                <div className="h-3 w-1/3 bg-slate-800 rounded" />
+                <div className="space-y-2">
+                  <div className="h-2 w-full bg-slate-800 rounded" />
+                  <div className="h-2 w-full bg-slate-800 rounded" />
+                </div>
               </div>
-              <span
-                className={[
-                  "text-xs px-2.5 py-1 rounded-full border",
-                  tone(area.weakness)
-                ].join(" ")}
-              >
-                {area.weakness} priority
-              </span>
-            </div>
+            ))}
+          </div>
+        )}
 
-            <div className="space-y-2">
-              <p className="text-xs text-slate-400">Recommended topics</p>
-              <div className="flex flex-wrap gap-2">
-                {area.recommended.map((r) => (
-                  <span
-                    key={r}
-                    className="text-xs px-2.5 py-1 rounded-full border border-white/10 bg-white/[0.04] text-slate-200"
-                  >
-                    {r}
+        {error && (
+          <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-100">
+            {error}
+          </div>
+        )}
+
+        {!loading && !error && areas.length === 0 && (
+          <div className="glass-panel p-8 text-center space-y-2">
+            <h3 className="text-sm font-medium text-slate-200">No weak areas identified</h3>
+            <p className="text-xs text-slate-400">Great job! You've shown strong proficiency across all assessed concepts.</p>
+          </div>
+        )}
+
+        {!loading && !error && areas.length > 0 && (
+          <div className="grid gap-4 md:grid-cols-2">
+            {areas.map((area) => (
+              <div key={area.concept} className="glass-panel p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-slate-100">
+                    {area.concept}
+                  </h2>
+                  <span className={`text-[11px] px-2 py-0.5 rounded-full border ${
+                    area.weakness === 'High' 
+                      ? 'border-red-500/50 bg-red-500/10 text-red-200' 
+                      : 'border-amber-500/50 bg-amber-500/10 text-amber-200'
+                  }`}>
+                    {area.weakness} priority
                   </span>
-                ))}
+                </div>
+                <div className="text-xs text-slate-400">
+                  Recommended prerequisites:
+                </div>
+                <ul className="text-xs text-slate-300 space-y-1">
+                  {area.recommended.map((r) => (
+                    <li key={r}>- {r}</li>
+                  ))}
+                </ul>
               </div>
-            </div>
-
-            <div className="flex items-center justify-end">
-              <Button variant="secondary" as="a" href="/study-mode">
-                Start practice
-              </Button>
-            </div>
-          </GlassPanel>
-        ))}
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

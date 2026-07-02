@@ -13,7 +13,7 @@ export default function QuizCard({
 
   return (
     <motion.div
-      className="glass-panel p-6 space-y-5"
+      className="glass-panel p-5 md:p-6 space-y-4"
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
@@ -22,17 +22,15 @@ export default function QuizCard({
         <span>
           Question {index + 1} of {total}
         </span>
-        <span className="px-2 py-1 rounded-full border border-white/10 bg-white/[0.04] text-slate-300">
-          {question.concept}
-        </span>
+        <span>{question.concept}</span>
       </div>
-      <div className="h-1.5 rounded-full bg-white/[0.06] border border-white/10 overflow-hidden">
+      <div className="h-1.5 rounded-full bg-slate-800 overflow-hidden">
         <div
-          className="h-full bg-gradient-to-r from-accent-indigo via-accent-violet to-accent-cyan transition-all"
+          className="h-full bg-primary-500 transition-all"
           style={{ width: `${progress}%` }}
         />
       </div>
-      <h2 className="text-base md:text-lg font-semibold text-slate-100 tracking-tight">
+      <h2 className="text-sm md:text-base font-medium text-slate-100">
         {question.text}
       </h2>
       <div className="space-y-2">
@@ -41,12 +39,11 @@ export default function QuizCard({
             key={opt.id}
             type="button"
             onClick={() => onSelect(opt.id)}
-            className={[
-              "focus-ring w-full text-left px-4 py-3 rounded-2xl border text-sm transition-all",
+            className={`w-full text-left px-3 py-2 rounded-xl border text-sm transition-colors ${
               selectedOptionId === opt.id
-                ? "border-white/15 bg-white/[0.08] text-slate-50 shadow-glow"
-                : "border-white/10 bg-white/[0.04] text-slate-200 hover:bg-white/[0.06]"
-            ].join(" ")}
+                ? "border-primary-500 bg-primary-500/10 text-slate-50"
+                : "border-slate-700 bg-slate-900/60 text-slate-300 hover:bg-slate-800"
+            }`}
           >
             {opt.label}
           </button>

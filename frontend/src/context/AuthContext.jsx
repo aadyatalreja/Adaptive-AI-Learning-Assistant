@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
+import { api } from "../services/api";
 
 const AuthContext = createContext(null);
 
@@ -9,52 +10,39 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (token) {
-      try {
-        // Demo mode: allow a non-JWT token stored by the UI.
-        if (token === "mock-token") {
-          const stored = localStorage.getItem("mockUser");
-          const mockUser = stored ? JSON.parse(stored) : null;
-          setUser(
-            mockUser || {
-              id: "local-user",
-              email: "learner@example.com",
-              name: "Learner",
-              role: null,
-              xp: 0,
-              level: 1
-            }
-          );
-          setLoading(false);
-          return;
-        }
+    const initAuth = async () => {
+      if (token) {
+        try {
+          // 1. Initial decode for immediate basic info
+          const decoded = jwtDecode(token);
+          setUser({
+            id: decoded.id,
+            email: decoded.email,
+            name: decoded.name,
+            role: decoded.role,
+            xp: decoded.xp,
+            level: decoded.level,
+            subjects: [] // default
+          });
 
-        const decoded = jwtDecode(token);
-        setUser({
-          id: decoded.id,
-          email: decoded.email,
-          name: decoded.name,
-          role: decoded.role,
-          xp: decoded.xp,
-          level: decoded.level
-        });
-      } catch {
-        // If decoding fails, keep the session but fall back to local demo user.
-        const stored = localStorage.getItem("mockUser");
-        const mockUser = stored ? JSON.parse(stored) : null;
-        setUser(
-          mockUser || {
-            id: "local-user",
-            email: "learner@example.com",
-            name: "Learner",
-            role: null,
-            xp: 0,
-            level: 1
+          // 2. Fetch full profile from server to get subjects etc.
+          const { data } = await api.get("/user/me");
+          if (data.user) {
+            setUser(data.user);
           }
-        );
+        } catch (err) {
+          console.error("Auth init error:", err);
+          if (err.response?.status === 401) {
+            logout();
+          }
+        }
+      } else {
+        setUser(null);
       }
-    }
-    setLoading(false);
+      setLoading(false);
+    };
+
+    initAuth();
   }, [token]);
 
   const login = (jwt) => {
@@ -64,7 +52,6 @@ export function AuthProvider({ children }) {
 
   const logout = () => {
     localStorage.removeItem("token");
-    localStorage.removeItem("mockUser");
     setToken(null);
     setUser(null);
   };

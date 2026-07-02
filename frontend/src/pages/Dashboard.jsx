@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -11,9 +11,7 @@ import {
 } from "chart.js";
 import XPBar from "../components/XPBar";
 import { useProgress } from "../context/ProgressContext";
-import { useAuth } from "../context/AuthContext";
-import { GlassPanel, SurfaceCard } from "../components/ui/Card";
-import Button from "../components/ui/Button";
+import { CourseAPI } from "../services/api";
 
 ChartJS.register(
   CategoryScale,
@@ -26,7 +24,8 @@ ChartJS.register(
 
 export default function Dashboard() {
   const { setCompletedTopics } = useProgress();
-  const { user } = useAuth();
+  const [reviews, setReviews] = useState([]);
+  const [loadingReviews, setLoadingReviews] = useState(true);
 
   useEffect(() => {
     setCompletedTopics([
@@ -34,6 +33,39 @@ export default function Dashboard() {
       "Asymptotic complexity basics",
       "Matrix multiplication and norms"
     ]);
+
+    const fetchCourseData = async () => {
+      try {
+        setLoadingReviews(true);
+        const { data } = await CourseAPI.myCourse();
+        if (data && Array.isArray(data.modules)) {
+          const mappedReviews = data.modules.slice(0, 5).map(module => {
+            let status = "Scheduled";
+            const level = (module.level || "").toLowerCase();
+            
+            if (level.includes("beginner")) {
+              status = "Today · High priority";
+            } else if (level.includes("intermediate")) {
+              status = "Tomorrow";
+            } else if (level.includes("advanced")) {
+              status = "In 3 days";
+            }
+
+            return {
+              topic: module.title,
+              status: status
+            };
+          });
+          setReviews(mappedReviews);
+        }
+      } catch (err) {
+        console.error("Failed to fetch course for reviews:", err);
+      } finally {
+        setLoadingReviews(false);
+      }
+    };
+
+    fetchCourseData();
   }, [setCompletedTopics]);
 
   const chartData = {
@@ -42,8 +74,8 @@ export default function Dashboard() {
       {
         label: "Concept mastery",
         data: [40, 52, 63, 72],
-        borderColor: "#22d3ee",
-        backgroundColor: "rgba(99,102,241,0.10)",
+        borderColor: "#3b82f6",
+        backgroundColor: "rgba(59,130,246,0.15)",
         tension: 0.35,
         fill: true
       }
@@ -55,27 +87,19 @@ export default function Dashboard() {
     plugins: {
       legend: {
         labels: {
-          color: "#cbd5e1",
+          color: "#cbd5f5",
           font: { size: 10 }
         }
-      },
-      tooltip: {
-        backgroundColor: "rgba(15,23,42,0.9)",
-        borderColor: "rgba(255,255,255,0.10)",
-        borderWidth: 1,
-        titleColor: "#e2e8f0",
-        bodyColor: "#cbd5e1",
-        padding: 10
       }
     },
     scales: {
       x: {
         ticks: { color: "#64748b", font: { size: 10 } },
-        grid: { color: "rgba(255,255,255,0.06)" }
+        grid: { color: "rgba(30,64,175,0.25)" }
       },
       y: {
         ticks: { color: "#64748b", font: { size: 10 } },
-        grid: { color: "rgba(255,255,255,0.06)" },
+        grid: { color: "rgba(30,64,175,0.25)" },
         suggestedMin: 0,
         suggestedMax: 100
       }
@@ -83,77 +107,65 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-semibold text-slate-50 tracking-tight">
-            Welcome{user?.name ? `, ${user.name}` : ""}<span className="text-gradient">.</span>
-          </h1>
-          <p className="mt-2 text-sm text-slate-400">
-            Your workspace overview: XP, mastery trend, upcoming reviews.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="secondary" as="a" href="/study-mode">
-            Start study session
-          </Button>
-          <Button as="a" href="/assessment">
-            Take assessment
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid gap-5 md:grid-cols-[minmax(0,1.35fr),minmax(0,1fr)]">
-        <div className="space-y-4">
-          <XPBar />
-          <GlassPanel className="p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-slate-100">
-                Mastery trend
-              </h2>
-              <span className="text-xs text-slate-500">
-                Clean chart · minimal noise
-              </span>
-            </div>
-            <Line data={chartData} options={chartOptions} height={110} />
-          </GlassPanel>
-        </div>
-
-        <div className="space-y-4">
-          <SurfaceCard className="p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-100">
-                Upcoming reviews
-              </h3>
-              <span className="text-xs text-slate-500">Spaced repetition</span>
-            </div>
-            <ul className="space-y-2 text-sm text-slate-300">
-              <li className="flex justify-between gap-3">
-                <span className="truncate">Bias-variance tradeoff</span>
-                <span className="text-slate-500">Today</span>
-              </li>
-              <li className="flex justify-between gap-3">
-                <span className="truncate">Heap vs priority queue</span>
-                <span className="text-slate-500">Tomorrow</span>
-              </li>
-              <li className="flex justify-between gap-3">
-                <span className="truncate">Singular value decomposition</span>
-                <span className="text-slate-500">3 days</span>
-              </li>
-            </ul>
-            <Button variant="secondary" as="a" href="/study-mode">
-              Review now
-            </Button>
-          </SurfaceCard>
-
-          <SurfaceCard className="p-5 space-y-2">
-            <h3 className="text-sm font-semibold text-slate-100">
-              Completed topics
-            </h3>
-            <p className="text-sm text-slate-500">
-              This section will populate automatically from practice history.
+    <div className="page-shell">
+      <div className="max-w-6xl mx-auto px-4 py-6 md:px-0">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-xl md:text-2xl font-semibold text-slate-50">
+              Learning dashboard
+            </h1>
+            <p className="mt-1 text-sm text-slate-400">
+              Overview of your current level, XP, and upcoming reviews.
             </p>
-          </SurfaceCard>
+          </div>
+        </div>
+
+        <div className="grid gap-5 md:grid-cols-[minmax(0,1.3fr),minmax(0,1fr)] mb-5">
+          <div className="space-y-4">
+            <XPBar />
+            <div className="glass-panel p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-slate-100">
+                  Progress overview
+                </h2>
+                <span className="text-[11px] text-slate-500">
+                  Machine Learning · Data Structures
+                </span>
+              </div>
+              <Line data={chartData} options={chartOptions} height={110} />
+            </div>
+          </div>
+          <div className="card-muted p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-slate-100">
+              Upcoming reviews
+            </h3>
+            <p className="text-xs text-slate-400">
+              Spaced repetition sessions prioritized by forgetting curves.
+            </p>
+            <ul className="mt-2 space-y-2 text-xs text-slate-300">
+              {loadingReviews ? (
+                <div className="space-y-2 animate-pulse">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="flex justify-between">
+                      <div className="h-3 w-2/3 bg-slate-800 rounded" />
+                      <div className="h-3 w-1/4 bg-slate-800 rounded" />
+                    </div>
+                  ))}
+                </div>
+              ) : reviews.length > 0 ? (
+                reviews.map((review, idx) => (
+                  <li key={idx} className="flex justify-between gap-3">
+                    <span className="truncate">{review.topic}</span>
+                    <span className="text-slate-500 flex-shrink-0">{review.status}</span>
+                  </li>
+                ))
+              ) : (
+                <li className="text-slate-500 italic">
+                  No upcoming reviews. Generate a course to get started.
+                </li>
+              )}
+            </ul>
+          </div>
         </div>
       </div>
     </div>

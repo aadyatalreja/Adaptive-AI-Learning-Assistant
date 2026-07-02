@@ -9,41 +9,22 @@ body,
 }
 
 body {
-  @apply bg-base-900 text-slate-50 font-sans antialiased;
+  @apply bg-slate-950 text-slate-50 font-sans antialiased;
 }
 
 .glass-panel {
-  @apply bg-white/[0.06] backdrop-blur-lg border border-white/10 rounded-2xl shadow-glow;
+  @apply bg-slate-900/70 backdrop-blur-xl border border-slate-700/60 rounded-2xl shadow-soft;
 }
 
 .page-shell {
-  @apply min-h-screen text-slate-50;
+  @apply min-h-screen bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900 text-slate-50;
 }
 
 .card-muted {
-  @apply bg-white/[0.04] border border-white/10 rounded-2xl;
+  @apply bg-slate-900/60 border border-slate-800/80 rounded-2xl;
 }
 
 .section-grid {
   @apply grid gap-6 md:grid-cols-2 xl:grid-cols-3;
-}
-
-.bg-app {
-  background:
-    radial-gradient(1200px 700px at 20% -10%, rgba(99, 102, 241, 0.22), transparent 55%),
-    radial-gradient(900px 600px at 90% 10%, rgba(168, 85, 247, 0.18), transparent 55%),
-    radial-gradient(900px 600px at 60% 110%, rgba(34, 211, 238, 0.12), transparent 55%),
-    linear-gradient(180deg, #0b1226 0%, #0f172a 60%, #0b1226 100%);
-}
-
-.text-gradient {
-  background: linear-gradient(90deg, #6366f1 0%, #a855f7 45%, #22d3ee 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-.focus-ring {
-  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base-900;
 }
 
