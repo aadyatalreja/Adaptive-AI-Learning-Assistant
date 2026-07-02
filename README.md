@@ -1,4 +1,4 @@
-# AI Adaptive Learning Platform
+# Adaptive AI Learning Platform
 
 A full-stack learning platform that uses AI to diagnose knowledge gaps, generate personalized courses, and support focused study sessions. Students sign up, complete an initial assessment, and receive adaptive content tailored to their weak areas—with gamification, progress tracking, and study tools in one workspace.
 
